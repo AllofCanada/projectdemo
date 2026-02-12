@@ -1,0 +1,24 @@
+name: Delete EKS Deployment
+
+on: workflow_dispatch
+
+jobs:
+  cleanup-eks:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.IAM_ROLE }}
+          aws-region: ca-central-1
+          role-session-name: GitHubActionsCleanup
+
+      - name: Delete Resources
+        run: |
+          aws eks update-kubeconfig --name eksdemo1 --region ca-central-1
+          kubectl delete -f eksfiles/ --ignore-not-found=true
+          ASSOC_ID=$(aws eks list-pod-identity-associations --cluster-name eksdemo1 --query "associations[?serviceAccount=='web-service-account'].associationId" --output text)
+          if [ "$ASSOC_ID" != "None" ] && [ -n "$ASSOC_ID" ]; then aws eks delete-pod-identity-association --cluster-name eksdemo1 --association-id $ASSOC_ID; fi
