@@ -2,6 +2,10 @@ name: Delete EKS Deployment
 
 on: workflow_dispatch
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   cleanup-eks:
     runs-on: ubuntu-latest
