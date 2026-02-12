@@ -36,3 +36,42 @@ jobs:
             ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_REPO }}:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  deploy-to-eks:
+    needs: docker-image-creation  # Waits for Job 1 to succeed
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      
+      - name: Load Project Configuration
+        run: cat docker.env >> $GITHUB_ENV
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ca-central-1
+
+      - name: Update Kubeconfig
+        run: |
+          aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }} --region ca-central-1
+
+      - name: Deploy Manifests
+        env:
+          # Define the variable exactly as it appears in your YAML
+          IMAGE_URI: ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_REPO }}:latest
+
+        run: |
+          # 1. Install gettext-base (contains envsubst) if missing
+          sudo apt-get install -y gettext-base
+
+          # 2. Loop through files and replace env vars
+          for file in eksfiles/*.yaml; do
+            # Replace ${IMAGE_URI} with the actual value and pipe to kubectl
+            envsubst < "$file" | kubectl apply -f -
+          done
+
+          # 3. Force restart to ensure new image is pulled
+          kubectl rollout restart deployment/web-deployment

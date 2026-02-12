@@ -1,0 +1,40 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-app1
+  annotations:
+    alb.ingress.kubernetes.io/load-balancer-name: loveapp
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    #Health check settings
+    alb.ingress.kubernetes.io/healthcheck-protocol: HTTP
+    alb.ingress.kubernetes.io/healthcheck-port: traffic-port
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: '10'
+    alb.ingress.kubernetes.io/healthcheck-timeout-seconds: '8'
+    alb.ingress.kubernetes.io/healthy-threshold-count: '2'
+    alb.ingress.kubernetes.io/unhealthy-threshold-count: '2'
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80},{"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ca-central-1:541804384520:certificate/ad4f601f-0e22-4ad2-9b0c-935f8ab64a2f
+    alb.ingress.kubernetes.io/ssl-redirect: '443'
+
+spec:
+  ingressClassName: alb
+  rules:
+  - http:    
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: web-service
+            port:
+              number: 80
+      - path: /latest
+        pathType: Prefix
+        backend:
+          service:
+            name: web-service2
+            port:
+              number: 80
+
+
+
