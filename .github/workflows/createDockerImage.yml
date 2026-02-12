@@ -50,9 +50,11 @@ jobs:
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          # Use the role ARN from your secret
+          role-to-assume: ${{ secrets.IAM_ROLE }}
           aws-region: ca-central-1
+          # session-name is optional but good for debugging logs in CloudTrail
+          role-session-name: GitHubActionsSession
 
       - name: Update Kubeconfig
         run: |
@@ -68,7 +70,7 @@ jobs:
           sudo apt-get install -y gettext-base
 
           # 2. Loop through files and replace env vars
-          for file in eksfiles/*.yaml; do
+          for file in eksfiles/*.yml; do
             # Replace ${IMAGE_URI} with the actual value and pipe to kubectl
             envsubst < "$file" | kubectl apply -f -
           done
