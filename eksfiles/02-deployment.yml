@@ -15,6 +15,7 @@ spec:
       labels:
         app: web
     spec:
+      serviceAccountName: web-service-account
       containers:
         - name: web
           image: ${IMAGE_URI}
