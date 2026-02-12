@@ -1,6 +1,10 @@
 name: Build Docker Image and pust to Dockerhub
 
-on: workflow_dispatch
+on:
+  push:
+    branches: [ "main" ]  # Change to "master" if your branch is named master
+  # Keep this if you still want to be able to click "Run" manually sometimes
+  workflow_dispatch:
 
 permissions:
   id-token: write
