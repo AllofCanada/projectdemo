@@ -8,7 +8,6 @@ permissions:
 
 jobs:
   deploy-to-eks:
-    needs: docker-image-creation
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
