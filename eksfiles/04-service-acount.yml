@@ -1,5 +1,0 @@
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: web-service-account
-  namespace: default # Or the namespace your app is in
