@@ -1,4 +1,4 @@
-name: Deploy EKS file
+name: Deploy to EKS
 
 on: workflow_dispatch
 
@@ -27,15 +27,20 @@ jobs:
         env:
           IMAGE_URI: ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_REPO }}:latest
         run: |
-          # 1. Login to EKS inside this specific shell session
+          # 1. Login to EKS
           aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }} --region ca-central-1
           
-          # 2. Ensure Pod Identity exists (Idempotent)
-          aws eks create-pod-identity-association --cluster-name ${{ env.EKS_CLUSTER_NAME }} --namespace default --service-account web-service-account --role-arn arn:aws:iam::541804384520:role/eks-pod-identity-web-role --region ca-central-1 || echo "Association already exists"
+          # 2. AUTOMATION: Pipeline grants ITSELF Admin Access to the Cluster
+          # This uses the AWS API (where you are already Admin) to fix the K8s API access.
+          aws eks create-access-entry --cluster-name ${{ env.EKS_CLUSTER_NAME }} --principal-arn ${{ secrets.IAM_ROLE }} --type STANDARD --region ca-central-1 || echo "Entry exists"
+          aws eks associate-access-policy --cluster-name ${{ env.EKS_CLUSTER_NAME }} --principal-arn ${{ secrets.IAM_ROLE }} --policy-arn arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy --access-scope type=cluster --region ca-central-1 || echo "Policy associated"
+
+          # 3. Ensure Pod Identity exists
+          aws eks create-pod-identity-association --cluster-name ${{ env.EKS_CLUSTER_NAME }} --namespace default --service-account web-service-account --role-arn arn:aws:iam::541804384520:role/eks-pod-identity-web-role --region ca-central-1 || echo "Association exists"
           
-          # 3. Install tools and deploy
+          # 4. Install tools and deploy
           sudo apt-get install -y gettext-base
           for file in eksfiles/*.yml; do envsubst < "$file" | kubectl apply -f -; done
           
-          # 4. Restart pods to pick up the new image
+          # 5. Restart pods
           kubectl rollout restart deployment/web-deployment
