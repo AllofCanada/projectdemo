@@ -37,36 +37,4 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  deploy-to-eks:
-    needs: docker-image-creation
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-      
-      - name: Load Project Configuration
-        run: cat docker.env >> $GITHUB_ENV
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.IAM_ROLE }}
-          aws-region: ca-central-1
-          role-session-name: GitHubActionsSession
-
-      - name: Deploy Manifests
-        env:
-          IMAGE_URI: ${{ secrets.DOCKER_USERNAME }}/${{ env.IMAGE_REPO }}:latest
-        run: |
-          # 1. Login to EKS inside this specific shell session
-          aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }} --region ca-central-1
-          
-          # 2. Ensure Pod Identity exists (Idempotent)
-          aws eks create-pod-identity-association --cluster-name ${{ env.EKS_CLUSTER_NAME }} --namespace default --service-account web-service-account --role-arn arn:aws:iam::541804384520:role/eks-pod-identity-web-role --region ca-central-1 || echo "Association already exists"
-          
-          # 3. Install tools and deploy
-          sudo apt-get install -y gettext-base
-          for file in eksfiles/*.yml; do envsubst < "$file" | kubectl apply -f -; done
-          
-          # 4. Restart pods to pick up the new image
-          kubectl rollout restart deployment/web-deployment
+  
