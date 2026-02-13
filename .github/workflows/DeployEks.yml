@@ -1,4 +1,4 @@
-name: Build Docker Image and pust to Dockerhub
+name: Deploy EKS
 
 on: workflow_dispatch
 
